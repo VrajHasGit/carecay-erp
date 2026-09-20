@@ -7,29 +7,32 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Signed in, has a staff profile, and not deactivated. A profile with no
-    // `status` field counts as active, matching how AuthContext reads it.
+    // Signed in, has a staff profile, and not deactivated. Only an explicit
+    // "Inactive" revokes access, so a missing or oddly-cased `status` field
+    // cannot lock someone out of their own account.
     function active() {
       return request.auth != null
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && profile().get('status', 'Active') == 'Active';
+        && profile().get('status', 'Active').upper() != 'INACTIVE';
     }
 
+    // Compared upper-case: roles are written inconsistently elsewhere in the
+    // app, and rules are the wrong place to discover that.
     function hasRole(roles) {
-      return active() && profile().get('role', '') in roles;
+      return active() && profile().get('role', '').upper() in roles;
     }
 
     // Staff profiles. Every signed-in employee can read them — the app resolves
     // names, roles and branches across records — but only management edits them.
     match /users/{userId} {
       allow read: if active();
-      allow write: if hasRole(['Admin', 'Partner', 'Manager']);
+      allow write: if hasRole(['ADMIN', 'PARTNER', 'MANAGER']);
     }
 
     // Company settings: branches, GST number, letterhead details, theme.
     match /settings/{docId} {
       allow read: if active();
-      allow write: if hasRole(['Admin', 'Partner']);
+      allow write: if hasRole(['ADMIN', 'PARTNER']);
     }
 
     // Every business record and its media subcollections. Excluding `users` and
