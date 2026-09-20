@@ -4,7 +4,7 @@
 
 Carecay ERP runs the full purchase-to-sale pipeline for the dealership: every stage of a vehicle's lifecycle — inquiry, valuation, purchase, refurbishment, stock, sale, delivery, finance, compliance — is modeled as a distinct, reusable pipeline stage rather than hardcoded one-off screens. That structure is deliberate: this repo is meant to be the base this grows from as Carecay's software ambitions expand beyond a single dealership's internal tool.
 
-This version runs on a self-hosted Node/Express + MySQL backend (see below). The next iteration of the platform is planned to move to **Supabase** (managed Postgres, auth, storage) as the company scales — the data-access layer in this codebase (`src/lib/localFirebase/`) already isolates the frontend from the backend implementation specifically so that migration doesn't require rewriting the application.
+This version runs on **Google Firebase** (Firestore, Auth, Storage) — a fully managed backend, so there's no server to host or database schema to maintain.
 
 ---
 
@@ -23,36 +23,26 @@ Every pipeline stage supports both organic creation (a standalone "+ Add" action
 ## Tech stack
 
 - **Frontend** — React 19, React Router 7, Vite
-- **Backend (current)** — Node.js + Express REST API, backed by MySQL (a generic JSON-document store per collection, so new fields never require a schema migration)
-- **Backend (planned)** — Supabase (Postgres + Auth + Storage), as the platform grows past a single-dealership tool
-- **Auth** — JWT-based sessions with bcrypt password hashing
-- **Media** — Client-side image compression, stored as base64 or uploaded to configurable object storage (Cloudflare R2 / Cloudinary)
-- **Deployment** — Static frontend (Vercel-ready); backend is a standalone Node service that can run anywhere
-
-The data layer is intentionally decoupled from any single backend vendor — the frontend talks to a thin compatibility layer (`src/lib/localFirebase/`) that mimics document-store semantics (collection/doc/query) regardless of what's underneath. That's what let this project move off Firebase onto local MySQL without touching a single page component, and it's the same seam the eventual Supabase migration will go through.
+- **Backend** — Google Firebase: Firestore (document database), Firebase Auth (sessions), Firebase Storage (media)
+- **Media** — Client-side image compression, stored in Firebase Storage (or configurable object storage — Cloudflare R2 / Cloudinary)
+- **Deployment** — Static frontend (Vercel-ready); Firebase is fully managed, no backend to deploy or maintain
 
 ## Getting started
 
-**Prerequisites:** Node.js 18+, MySQL 8+
+**Prerequisites:** Node.js 18+, a Firebase project (Firestore + Auth + Storage enabled)
 
 ```bash
 # 1. Install dependencies
 npm install
 
-# 2. Set up the database
-mysql -u root -p < server/schema.sql         # creates carecay_crm + all tables
+# 2. Configure the frontend
+cp .env.example .env.local                   # fill in your Firebase project config
 
-# 3. Configure the backend
-cp server/.env.example server/.env           # fill in your MySQL credentials + JWT secret
-
-# 4. Configure the frontend
-cp .env.example .env.local                   # fill in local API URL / media upload config
-
-# 5. Run everything
-npm run dev:local                            # starts the API server + Vite dev server together
+# 3. Run the app
+npm run dev
 ```
 
-Visit `http://localhost:5173` and log in with an account seeded via `server/import.js` or created through User Management.
+Visit `http://localhost:5173` and log in with an account created through Firebase Auth / User Management.
 
 ## Project structure
 
@@ -61,19 +51,13 @@ src/
   components/          Layout, Sidebar, Topbar, notifications, media viewer, print templates
   components/modals/   One modal per business entity — the primary data-entry surface
   contexts/            Auth, real-time data sync, notifications
-  lib/localFirebase/   Backend-agnostic data-access shim (collection/doc/query semantics)
+  firebase.js          Firebase app initialization (Firestore, Auth, Storage)
   pages/               One page per pipeline stage / module
-  services/            Generic CRUD, ID generation, notification dispatch
+  services/            Generic CRUD (Firestore), ID generation, notification dispatch
   utils/               Calculations (EMI, GST, negotiation), formatting, cross-collection auto-fill
-server/
-  index.js             Express REST API
-  db.js                MySQL connection pool
-  import.js            Data recovery / seed script
 ```
 
 ## Roadmap
 
-- Migrate the backend from MySQL to Supabase (Postgres + Auth + Storage) as the primary datastore
-- Harden auth and access control now that the system is standing on its own (independent of a single BaaS vendor's default security posture)
+- Harden Firestore security rules and access control as the system grows
 - Extend the pipeline model to support additional branches/entities under the Carecay umbrella
-- Keep the frontend's data-access layer backend-agnostic so future infrastructure changes stay isolated from page/component code

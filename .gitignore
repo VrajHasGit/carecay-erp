@@ -36,6 +36,3 @@ dist-ssr
 # Data exports — contain sensitive info, never commit
 carecay_export.json
 
-# Local backend uploads (real customer documents/photos — never commit)
-server/uploads/
-
