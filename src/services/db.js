@@ -49,7 +49,9 @@ function sanitize(obj) {
   return clean;
 }
 
-const EXEMPT_KEYS = ['password', 'pw', 'appr_pw', 'email', 'loginId', 'lid', 'image', 'stage', 'status', 'stat', 'pf_stat', 'pStatus', 'dc_stat', 'exec', 'mode', 'seq', 'ws_jstat', 'ws_pstat', 'jStat', 'pStat', 'category', 'expType'];
+// `role` and `branch` are matched case-sensitively against fixed lists in
+// AuthContext and Sidebar, so upper-casing them here revokes a user's access.
+const EXEMPT_KEYS = ['password', 'pw', 'appr_pw', 'email', 'loginId', 'lid', 'image', 'stage', 'status', 'stat', 'pf_stat', 'pStatus', 'dc_stat', 'exec', 'mode', 'seq', 'ws_jstat', 'ws_pstat', 'jStat', 'pStat', 'category', 'expType', 'role', 'branch'];
 
 function capitalizeData(obj) {
   if (typeof obj === 'string') {
